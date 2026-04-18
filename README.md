@@ -28,5 +28,3 @@ We are currently in the **data preparation & feature engineering phase**, includ
 ---
 
 _Upcoming steps: feature encoding, scaling, pipeline construction, model training, evaluation, and explainability._
-
-🚀 Built for learning, built with intent.
