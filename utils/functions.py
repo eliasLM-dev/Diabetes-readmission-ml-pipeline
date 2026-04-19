@@ -8,34 +8,118 @@ The functions are designed to be efficient and optimized for performance, using 
 # Importing necessary libraries
 import pandas as pd
 import numpy as np
+from sklearn.model_selection import train_test_split
 
+
+# -----------------------------------------------------------
 # ---------------   Data Cleaning Functions   ---------------
-def placeholder_check_and_drop(df, column_name, placeholder_codes, threshold):
+# -----------------------------------------------------------
+
+def clean_dataframe(df, placeholders, drop_threshold=0.05):
     """
-    Checks the total proportion of placeholder codes in a column.
-    Drops rows containing them if total is below threshold.
-    Otherwise, replaces those codes with NaN.
-    
+    1. Replaces placeholders with NaN.
+    2. Drops all duplicates (global and patient_nbr).
+    3. Drops rows that are too sparse (>drop_threshold proportion missing).
+ 
     Args:
-        df (DataFrame): The DataFrame to operate on.
-        column_name (str): The name of the column to check.
-        placeholder_codes (list): List of codes considered 'missing'.
-        threshold (float): Max % allowed before replacing instead of dropping.
-        
+    df: pandas DataFrame - The input DataFrame to be cleaned.
+    placeholders: list - A list of placeholder values to be replaced with NaN.
+    drop_threshold: float - The threshold for dropping rows based on the proportion of missing values in that row.
+    
     Returns:
-        DataFrame: Cleaned DataFrame
+    df: cleaned DataFrame
+    report: dict with removal stats
     """
     df = df.copy()
-    mask = df[column_name].isin(placeholder_codes)
-    proportion = mask.mean()
+    original_shape = df.shape
+    
+    # Global replace
+    df = df.replace(placeholders, np.nan)
+    
+    # Remove duplicates (global)
+    df = df.drop_duplicates()
+    after_global = df.shape[0]
+    
+    # Remove duplicates (patient_nbr)
+    if 'patient_nbr' in df.columns:
+        df = df.drop_duplicates(subset=['patient_nbr'], keep='first')
+    after_patient = df.shape[0]
+        
+    # Generate report
+    report = {
+        'original_shape': original_shape,
+        'after_global_dedup': (after_global, original_shape[0] - after_global),
+        'after_patient_dedup': (after_patient, after_global - after_patient),
+        'final_shape': df.shape
+    }
+    
+    return df, report
 
-    if proportion <= threshold and proportion != 0:
-        print(f"Dropping {mask.sum()} rows from '{column_name}' with placeholder codes ({proportion * 100:.2f}%).")
-        return df[~mask]
-    elif proportion == 0:
-        print(f"No rows in '{column_name}' contain placeholder codes.")
-        return df
-    else:
-        print(f"Keeping all rows in '{column_name}' — {proportion * 100:.2f}% have placeholder codes (over {threshold*100:.1f}%).")
-        df.loc[mask, column_name] = np.nan
-        return df
+def drop_useless_columns(df, threshold=0.4):
+    """
+    Drop columns with NaN ratio higher than threshold.
+    Returns: df and list of dropped columns
+    """
+    df = df.copy()
+    cols_before = set(df.columns)
+
+    df = df.loc[:, df.isnull().mean() < threshold]
+    cols_after = set(df.columns)
+    
+    dropped_cols = list(cols_before - cols_after)
+    
+    return df, dropped_cols
+
+
+# -----------------------------------------------------------
+# ---------------   Data Splitting Functions   --------------
+# -----------------------------------------------------------
+def data_split(df, target_col, train_size=0.6, val_size=0.2, test_size=0.2, random_state=42):
+    """
+    Best practice split: 
+    1. Ensures total ratio equals 1.0
+    2. Uses stratification to keep class balance.
+    3. Handles the math internally.
+
+    Args:
+        df: pandas DataFrame - The input DataFrame to be split.
+        target_col: str - The name of the target column in the DataFrame.
+        train_size: float - The proportion of the dataset to include in the training set.
+        val_size: float - The proportion of the dataset to include in the validation set.
+        test_size: float - The proportion of the dataset to include in the test set.
+        random_state: int - The random seed for reproducibility.
+
+    Returns:
+        X_train, X_val, X_test: pandas DataFrames - The feature sets for training
+    """
+
+    if (train_size + val_size + test_size) != 1.0:
+        raise ValueError("Ratios must sum to 1.0")
+
+    X = df.drop(columns=[target_col])
+    y = df[target_col]
+
+    # Extracting Test set
+    X_temp, X_test, y_temp, y_test = train_test_split(
+        X, 
+        y, 
+        test_size=test_size, 
+        random_state=random_state, 
+        stratify=y
+    )
+
+    # Extracting Val set from the remainder
+    adjusted_val_size = val_size / (train_size + val_size)
+    
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_temp, 
+        y_temp, 
+        test_size=adjusted_val_size, 
+        random_state=random_state, 
+        stratify=y_temp
+    )
+
+    print("Data split completed successfully.")
+    print(f"Shapes: Train {X_train.shape[0]}, Val {X_val.shape[0]}, Test {X_test.shape[0]}")
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
