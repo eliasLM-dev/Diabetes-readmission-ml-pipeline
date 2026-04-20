@@ -34,7 +34,7 @@ def clean_dataframe(df, placeholders, drop_threshold=0.05):
     original_shape = df.shape
     
     # Global replace
-    df = df.replace(placeholders, np.nan)
+    df = df.replace(placeholders, np.nan).infer_objects(copy=False)
     
     # Remove duplicates (global)
     df = df.drop_duplicates()

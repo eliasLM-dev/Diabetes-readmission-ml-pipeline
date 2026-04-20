@@ -264,13 +264,12 @@ def test_column_split_all_columns_accounted():
 # -----------------------------------------------------------
 
 def test_apply_imputer_removes_nulls():
-    """No NaN values remain in categorical columns after imputation"""
     X_train = pd.DataFrame({
         'cat': ['a', 'b', 'a', 'a'],
         'num': [1, 2, 3, 4]
     })
     X_test = pd.DataFrame({
-        'cat': ['a', None, 'b', 'a'],
+        'cat': ['a', np.nan, 'b', 'a'],  # np.nan not None
         'num': [1, 2, 3, 4]
     })
     cat_cols, num_cols = ['cat'], ['num']
@@ -281,7 +280,6 @@ def test_apply_imputer_removes_nulls():
     result = f.apply_imputer(X_test, imputer, cat_cols, num_cols)
 
     assert result['cat'].isnull().sum() == 0
-
 
 def test_apply_imputer_preserves_numerical_columns():
     """Numerical columns are untouched by categorical imputer"""
