@@ -74,6 +74,31 @@ def drop_useless_columns(df, threshold=0.4):
 # -----------------------------------------------------------
 # ---------------   Data Splitting Functions   --------------
 # -----------------------------------------------------------
+
+def column_split(df):
+    """
+    Splits the DataFrame into categorical and numerical columns based on data types.
+    Args:
+        df: pandas DataFrame - The input DataFrame to be split.
+    Returns:
+        cat_cols: list - The names of the categorical columns.
+        num_cols: list - The names of the numerical columns.
+    """
+    cat_cols = df.select_dtypes(include=['object']).columns.tolist()
+    num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+
+    return cat_cols, num_cols
+
+
+def apply_imputer(df, imputer, cat_cols, num_cols):
+    imputed = pd.DataFrame(
+        imputer.transform(df[cat_cols]),
+        columns=cat_cols,
+        index=df.index
+    )
+    return pd.concat([df[num_cols], imputed], axis=1)
+
+
 def data_split(df, target_col, train_size=0.6, val_size=0.2, test_size=0.2, random_state=42):
     """
     Best practice split: 
@@ -123,3 +148,59 @@ def data_split(df, target_col, train_size=0.6, val_size=0.2, test_size=0.2, rand
     print(f"Shapes: Train {X_train.shape[0]}, Val {X_val.shape[0]}, Test {X_test.shape[0]}")
 
     return X_train, X_val, X_test, y_train, y_val, y_test
+
+
+
+# -----------------------------------------------------------
+# --------------- Feature Engineering Functions -------------
+# -----------------------------------------------------------
+
+def binarize_target(y):
+    """
+    Converts the 3-class readmitted target into binary.
+    1 = readmitted within 30 days (<30)
+    0 = not readmitted within 30 days (>30 or NO)
+
+    Args:
+        y: pandas Series - The target variable to be binarized.
+    Returns:
+        pandas Series - The binarized target variable.
+    """
+    return (y == '<30').astype(int)
+
+
+def map_icd9(code, icd9_mapped_categories):
+    if pd.isna(code):
+        return 'unknown'
+    
+    code = str(code).strip()
+    
+    if code.startswith('V') or code.startswith('E'):
+        return 'other'
+    
+    try:
+        numeric = float(code)
+    except ValueError:
+        return 'unknown'
+    
+    for start, end, category in icd9_mapped_categories:
+        if start <= numeric <= end:
+            return category
+    
+    return 'other'
+
+def get_rare_category_indices(df, col, min_count=10):
+    """
+    Returns indices of rows where col has a category 
+    appearing fewer than min_count times.
+    Args:
+        df: pandas DataFrame - The input DataFrame.
+        col: str - The name of the column to analyze.
+        min_count: int - The minimum count threshold for a category to be considered common.
+    Returns:
+        pandas Index - The indices of rows with rare categories in the specified column.
+    """
+    counts = df[col].value_counts()
+    rare = counts[counts < min_count].index
+
+    return df[df[col].isin(rare)].index
