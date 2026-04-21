@@ -13,6 +13,7 @@ import pandas as pd
 import numpy as np
 import pytest
 from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
 import utils.functions as f
 
 
@@ -219,46 +220,6 @@ def test_binarize_target_returns_binary():
 
     assert set(result.unique()).issubset({0, 1})
 
-
-# -----------------------------------------------------------
-# -----   Tests for column_split   -----
-# -----------------------------------------------------------
-
-def test_column_split_separates_correctly():
-    """Numerical and categorical columns are correctly identified"""
-    df = pd.DataFrame({
-        'num_col': [1, 2, 3],
-        'cat_col': ['a', 'b', 'c']
-    })
-    cat_cols, num_cols = f.column_split(df)
-
-    assert 'cat_col' in cat_cols
-    assert 'num_col' in num_cols
-
-
-def test_column_split_no_overlap():
-    """No column appears in both categorical and numerical lists"""
-    df = pd.DataFrame({
-        'num_col': [1, 2, 3],
-        'cat_col': ['a', 'b', 'c']
-    })
-    cat_cols, num_cols = f.column_split(df)
-
-    assert len(set(cat_cols) & set(num_cols)) == 0
-
-
-def test_column_split_all_columns_accounted():
-    """Every column in the DataFrame appears in exactly one list"""
-    df = pd.DataFrame({
-        'num1': [1, 2, 3],
-        'num2': [1.0, 2.0, 3.0],
-        'cat1': ['a', 'b', 'c']
-    })
-    cat_cols, num_cols = f.column_split(df)
-
-    assert len(cat_cols) + len(num_cols) == len(df.columns)
-
-
 # -----------------------------------------------------------
 # -----   Tests for apply_imputer   -----
 # -----------------------------------------------------------
@@ -425,3 +386,31 @@ def test_evaluate_model_handles_zero_division():
     assert result['f1'] == 0.0
     assert result['precision'] == 0.0
     assert result['recall'] == 0.0
+
+# -----------------------------------------------------------
+# --------------  Tests for the Data Scaler  ----------------
+# -----------------------------------------------------------
+
+def test_scaling_fit_on_train_only():
+    """
+    Scaler is fit on train and applied to all sets — train mean should be ~0
+    """
+df = pd.DataFrame({
+    'feature1': np.random.rand(1000),
+    'target': [0, 1] * 500
+})
+X_train, X_val, X_test, _, _, _ = f.data_split(df, 'target')
+
+cols = ['feature1']
+scaler = StandardScaler()
+X_train[cols] = scaler.fit_transform(X_train[cols])
+X_val[cols] = scaler.transform(X_val[cols])
+X_test[cols] = scaler.transform(X_test[cols])
+
+# Train mean should be ~0 and std ~1 after scaling
+assert abs(X_train['feature1'].mean()) < 0.02
+assert abs(X_train['feature1'].std() - 1.0) < 0.05
+
+# Val and test mean won't be exactly 0 but should be close
+assert abs(X_val['feature1'].mean()) < 0.2
+assert abs(X_test['feature1'].mean()) < 0.2

@@ -15,26 +15,27 @@ from sklearn.metrics import f1_score, roc_auc_score, precision_score, recall_sco
 # -----------------------------------------------------------                       -----------------------------------------------------------
 # ----------------------------------------------------------- 02_Data Preprocessing -----------------------------------------------------------
 # -----------------------------------------------------------                       -----------------------------------------------------------
+from sklearn.preprocessing import OneHotEncoder
+
 
 
 # -----------------------------------------------------------
 # ---------------   Data Cleaning Functions   ---------------
 # -----------------------------------------------------------
 
-def clean_dataframe(df, placeholders, drop_threshold=0.05):
+def clean_dataframe(df, placeholders):
     """
     1. Replaces placeholders with NaN.
     2. Drops all duplicates (global and patient_nbr).
     3. Drops rows that are too sparse (>drop_threshold proportion missing).
  
     Args:
-    df: pandas DataFrame - The input DataFrame to be cleaned.
-    placeholders: list - A list of placeholder values to be replaced with NaN.
-    drop_threshold: float - The threshold for dropping rows based on the proportion of missing values in that row.
+        df: pandas DataFrame - The input DataFrame to be cleaned.
+        placeholders: list - A list of placeholder values to be replaced with NaN.
     
     Returns:
-    df: cleaned DataFrame
-    report: dict with removal stats
+        df: cleaned DataFrame
+        report: dict with removal stats
     """
     df = df.copy()
     original_shape = df.shape
@@ -64,7 +65,11 @@ def clean_dataframe(df, placeholders, drop_threshold=0.05):
 def drop_useless_columns(df, threshold=0.4):
     """
     Drop columns with NaN ratio higher than threshold.
-    Returns: df and list of dropped columns
+    Args:
+        df: pandas DataFrame - The input DataFrame to be processed.
+        threshold: float - The threshold for dropping columns based on the proportion of missing values.
+    Returns: 
+        df and list of dropped columns
     """
     df = df.copy()
     cols_before = set(df.columns)
@@ -81,22 +86,17 @@ def drop_useless_columns(df, threshold=0.4):
 # ---------------   Data Splitting Functions   --------------
 # -----------------------------------------------------------
 
-def column_split(df):
+def apply_imputer(df, imputer, cat_cols, num_cols):
     """
-    Splits the DataFrame into categorical and numerical columns based on data types.
+    Applies the fitted imputer to the categorical columns of the DataFrame.
     Args:
-        df: pandas DataFrame - The input DataFrame to be split.
-    Returns:
+        df: pandas DataFrame - The input DataFrame to be processed.
+        imputer: sklearn imputer - The fitted imputer.
         cat_cols: list - The names of the categorical columns.
         num_cols: list - The names of the numerical columns.
+    Returns:
+        pandas DataFrame - The DataFrame with imputed values.
     """
-    cat_cols = df.select_dtypes(include=['object']).columns.tolist()
-    num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-
-    return cat_cols, num_cols
-
-
-def apply_imputer(df, imputer, cat_cols, num_cols):
     imputed = pd.DataFrame(
         imputer.transform(df[cat_cols]),
         columns=cat_cols,
@@ -237,3 +237,31 @@ def evaluate_model(y_true, y_pred, y_prob):
         'recall': recall_score(y_true, y_pred, zero_division=0),
         'roc_auc': roc_auc_score(y_true, y_prob)
     }
+# -----------------------------------------------------------
+# -------------------- Encoder Functions --------------------
+# -----------------------------------------------------------
+def encode_categorical(X_train, X_val, X_test, cat_cols):
+    """
+    One-hot encodes categorical columns.
+    Fits on X_train only, transforms all three sets.
+    Drops first category to avoid multicollinearity (n-1 encoding).
+    
+    Args:
+        X_train, X_val, X_test: pandas DataFrames
+        cat_cols: list of categorical column names to encode
+    Returns:
+        X_train, X_val, X_test: encoded DataFrames
+    """
+    encoder = OneHotEncoder(drop='first', sparse_output=False, handle_unknown='ignore')
+    
+    encoder.fit(X_train[cat_cols])
+    
+    def transform(X):
+        encoded = pd.DataFrame(
+            encoder.transform(X[cat_cols]),
+            columns=encoder.get_feature_names_out(cat_cols),
+            index=X.index
+        )
+        return pd.concat([X.drop(columns=cat_cols), encoded], axis=1)
+    
+    return transform(X_train), transform(X_val), transform(X_test)
