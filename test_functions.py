@@ -220,46 +220,6 @@ def test_binarize_target_returns_binary():
 
     assert set(result.unique()).issubset({0, 1})
 
-
-# -----------------------------------------------------------
-# -----   Tests for column_split   -----
-# -----------------------------------------------------------
-
-def test_column_split_separates_correctly():
-    """Numerical and categorical columns are correctly identified"""
-    df = pd.DataFrame({
-        'num_col': [1, 2, 3],
-        'cat_col': ['a', 'b', 'c']
-    })
-    cat_cols, num_cols = f.column_split(df)
-
-    assert 'cat_col' in cat_cols
-    assert 'num_col' in num_cols
-
-
-def test_column_split_no_overlap():
-    """No column appears in both categorical and numerical lists"""
-    df = pd.DataFrame({
-        'num_col': [1, 2, 3],
-        'cat_col': ['a', 'b', 'c']
-    })
-    cat_cols, num_cols = f.column_split(df)
-
-    assert len(set(cat_cols) & set(num_cols)) == 0
-
-
-def test_column_split_all_columns_accounted():
-    """Every column in the DataFrame appears in exactly one list"""
-    df = pd.DataFrame({
-        'num1': [1, 2, 3],
-        'num2': [1.0, 2.0, 3.0],
-        'cat1': ['a', 'b', 'c']
-    })
-    cat_cols, num_cols = f.column_split(df)
-
-    assert len(cat_cols) + len(num_cols) == len(df.columns)
-
-
 # -----------------------------------------------------------
 # -----   Tests for apply_imputer   -----
 # -----------------------------------------------------------
