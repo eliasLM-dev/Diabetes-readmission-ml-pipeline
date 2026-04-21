@@ -17,20 +17,19 @@ from sklearn.preprocessing import OneHotEncoder
 # ---------------   Data Cleaning Functions   ---------------
 # -----------------------------------------------------------
 
-def clean_dataframe(df, placeholders, drop_threshold=0.05):
+def clean_dataframe(df, placeholders):
     """
     1. Replaces placeholders with NaN.
     2. Drops all duplicates (global and patient_nbr).
     3. Drops rows that are too sparse (>drop_threshold proportion missing).
  
     Args:
-    df: pandas DataFrame - The input DataFrame to be cleaned.
-    placeholders: list - A list of placeholder values to be replaced with NaN.
-    drop_threshold: float - The threshold for dropping rows based on the proportion of missing values in that row.
+        df: pandas DataFrame - The input DataFrame to be cleaned.
+        placeholders: list - A list of placeholder values to be replaced with NaN.
     
     Returns:
-    df: cleaned DataFrame
-    report: dict with removal stats
+        df: cleaned DataFrame
+        report: dict with removal stats
     """
     df = df.copy()
     original_shape = df.shape
@@ -60,7 +59,11 @@ def clean_dataframe(df, placeholders, drop_threshold=0.05):
 def drop_useless_columns(df, threshold=0.4):
     """
     Drop columns with NaN ratio higher than threshold.
-    Returns: df and list of dropped columns
+    Args:
+        df: pandas DataFrame - The input DataFrame to be processed.
+        threshold: float - The threshold for dropping columns based on the proportion of missing values.
+    Returns: 
+        df and list of dropped columns
     """
     df = df.copy()
     cols_before = set(df.columns)
@@ -77,22 +80,17 @@ def drop_useless_columns(df, threshold=0.4):
 # ---------------   Data Splitting Functions   --------------
 # -----------------------------------------------------------
 
-def column_split(df):
+def apply_imputer(df, imputer, cat_cols, num_cols):
     """
-    Splits the DataFrame into categorical and numerical columns based on data types.
+    Applies the fitted imputer to the categorical columns of the DataFrame.
     Args:
-        df: pandas DataFrame - The input DataFrame to be split.
-    Returns:
+        df: pandas DataFrame - The input DataFrame to be processed.
+        imputer: sklearn imputer - The fitted imputer.
         cat_cols: list - The names of the categorical columns.
         num_cols: list - The names of the numerical columns.
+    Returns:
+        pandas DataFrame - The DataFrame with imputed values.
     """
-    cat_cols = df.select_dtypes(include=['object']).columns.tolist()
-    num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-
-    return cat_cols, num_cols
-
-
-def apply_imputer(df, imputer, cat_cols, num_cols):
     imputed = pd.DataFrame(
         imputer.transform(df[cat_cols]),
         columns=cat_cols,
