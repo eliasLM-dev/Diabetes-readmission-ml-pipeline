@@ -9,6 +9,8 @@ The functions are designed to be efficient and optimized for performance, using 
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+
 
 
 # -----------------------------------------------------------
@@ -204,3 +206,33 @@ def get_rare_category_indices(df, col, min_count=10):
     rare = counts[counts < min_count].index
 
     return df[df[col].isin(rare)].index
+
+
+# -----------------------------------------------------------
+# -------------------- Encoder Functions --------------------
+# -----------------------------------------------------------
+def encode_categorical(X_train, X_val, X_test, cat_cols):
+    """
+    One-hot encodes categorical columns.
+    Fits on X_train only, transforms all three sets.
+    Drops first category to avoid multicollinearity (n-1 encoding).
+    
+    Args:
+        X_train, X_val, X_test: pandas DataFrames
+        cat_cols: list of categorical column names to encode
+    Returns:
+        X_train, X_val, X_test: encoded DataFrames
+    """
+    encoder = OneHotEncoder(drop='first', sparse_output=False, handle_unknown='ignore')
+    
+    encoder.fit(X_train[cat_cols])
+    
+    def transform(X):
+        encoded = pd.DataFrame(
+            encoder.transform(X[cat_cols]),
+            columns=encoder.get_feature_names_out(cat_cols),
+            index=X.index
+        )
+        return pd.concat([X.drop(columns=cat_cols), encoded], axis=1)
+    
+    return transform(X_train), transform(X_val), transform(X_test)
