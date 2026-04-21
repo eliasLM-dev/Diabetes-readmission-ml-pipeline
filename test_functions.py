@@ -395,22 +395,23 @@ def test_scaling_fit_on_train_only():
     """
     Scaler is fit on train and applied to all sets — train mean should be ~0
     """
-df = pd.DataFrame({
-    'feature1': np.random.rand(1000),
-    'target': [0, 1] * 500
-})
-X_train, X_val, X_test, _, _, _ = f.data_split(df, 'target')
+    rng = np.random.default_rng(42)
+    df = pd.DataFrame({
+        'feature1': rng.random(1000),
+        'target': [0, 1] * 500
+    })
+    X_train, X_val, X_test, _, _, _ = f.data_split(df, 'target')
 
-cols = ['feature1']
-scaler = StandardScaler()
-X_train[cols] = scaler.fit_transform(X_train[cols])
-X_val[cols] = scaler.transform(X_val[cols])
-X_test[cols] = scaler.transform(X_test[cols])
+    cols = ['feature1']
+    scaler = StandardScaler()
+    X_train[cols] = scaler.fit_transform(X_train[cols])
+    X_val[cols] = scaler.transform(X_val[cols])
+    X_test[cols] = scaler.transform(X_test[cols])
 
-# Train mean should be ~0 and std ~1 after scaling
-assert abs(X_train['feature1'].mean()) < 0.02
-assert abs(X_train['feature1'].std() - 1.0) < 0.05
+    # Train mean should be ~0 and std ~1 after scaling
+    assert abs(X_train['feature1'].mean()) < 0.02
+    assert abs(X_train['feature1'].std() - 1.0) < 0.05
 
-# Val and test mean won't be exactly 0 but should be close
-assert abs(X_val['feature1'].mean()) < 0.2
-assert abs(X_test['feature1'].mean()) < 0.2
+    # Val and test mean won't be exactly 0 but should be close
+    assert abs(X_val['feature1'].mean()) < 0.2
+    assert abs(X_test['feature1'].mean()) < 0.2
