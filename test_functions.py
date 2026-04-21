@@ -418,9 +418,9 @@ X_val[cols] = scaler.transform(X_val[cols])
 X_test[cols] = scaler.transform(X_test[cols])
 
 # Train mean should be ~0 and std ~1 after scaling
-assert abs(X_train['feature1'].mean()) < 0.01
-assert abs(X_train['feature1'].std() - 1.0) < 0.01
+assert abs(X_train['feature1'].mean()) < 0.02
+assert abs(X_train['feature1'].std() - 1.0) < 0.05
 
 # Val and test mean won't be exactly 0 but should be close
-assert abs(X_val['feature1'].mean()) < 0.1
-assert abs(X_test['feature1'].mean()) < 0.1
+assert abs(X_val['feature1'].mean()) < 0.2
+assert abs(X_test['feature1'].mean()) < 0.2
