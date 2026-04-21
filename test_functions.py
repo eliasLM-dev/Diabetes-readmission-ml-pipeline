@@ -13,6 +13,7 @@ import pandas as pd
 import numpy as np
 import pytest
 from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
 import utils.functions as f
 
 
@@ -393,3 +394,33 @@ def test_get_rare_category_indices_correct_rows_identified():
 
     assert 3 in idx
     assert 0 not in idx
+
+
+
+# -----------------------------------------------------------
+# --------------  Tests for the Data Scaler  ----------------
+# -----------------------------------------------------------
+
+def test_scaling_fit_on_train_only():
+    """
+    Scaler is fit on train and applied to all sets — train mean should be ~0
+    """
+df = pd.DataFrame({
+    'feature1': np.random.rand(1000),
+    'target': [0, 1] * 500
+})
+X_train, X_val, X_test, _, _, _ = f.data_split(df, 'target')
+
+cols = ['feature1']
+scaler = StandardScaler()
+X_train[cols] = scaler.fit_transform(X_train[cols])
+X_val[cols] = scaler.transform(X_val[cols])
+X_test[cols] = scaler.transform(X_test[cols])
+
+# Train mean should be ~0 and std ~1 after scaling
+assert abs(X_train['feature1'].mean()) < 0.02
+assert abs(X_train['feature1'].std() - 1.0) < 0.05
+
+# Val and test mean won't be exactly 0 but should be close
+assert abs(X_val['feature1'].mean()) < 0.2
+assert abs(X_test['feature1'].mean()) < 0.2
