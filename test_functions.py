@@ -393,3 +393,35 @@ def test_get_rare_category_indices_correct_rows_identified():
 
     assert 3 in idx
     assert 0 not in idx
+
+
+# -----------------------------------------------------------                       -----------------------------------------------------------
+# ----------------------------------------------------------- 03_Model Training     -----------------------------------------------------------
+# -----------------------------------------------------------                       -----------------------------------------------------------
+
+
+# -----------------------------------------------------------
+# ---------------- Test for evaluate_model ------------------
+# -----------------------------------------------------------
+def test_evaluate_model_returns_correct_keys():
+    """evaluate_model returns all expected metric keys"""
+    y_true = np.array([0, 1, 0, 1, 0])
+    y_pred = np.array([0, 1, 0, 0, 0])
+    y_prob = np.array([0.1, 0.9, 0.2, 0.4, 0.1])
+    
+    result = f.evaluate_model(y_true, y_pred, y_prob)
+    
+    assert set(result.keys()) == {'accuracy', 'f1', 'precision', 'recall', 'roc_auc'}
+
+
+def test_evaluate_model_handles_zero_division():
+    """No error when model predicts all zeros"""
+    y_true = np.array([0, 0, 0, 1, 1])
+    y_pred = np.array([0, 0, 0, 0, 0])
+    y_prob = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
+    
+    result = f.evaluate_model(y_true, y_pred, y_prob)
+    
+    assert result['f1'] == 0.0
+    assert result['precision'] == 0.0
+    assert result['recall'] == 0.0
