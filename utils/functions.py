@@ -9,6 +9,12 @@ The functions are designed to be efficient and optimized for performance, using 
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import f1_score, roc_auc_score, precision_score, recall_score, accuracy_score
+
+
+# -----------------------------------------------------------                       -----------------------------------------------------------
+# ----------------------------------------------------------- 02_Data Preprocessing -----------------------------------------------------------
+# -----------------------------------------------------------                       -----------------------------------------------------------
 from sklearn.preprocessing import OneHotEncoder
 
 
@@ -206,6 +212,31 @@ def get_rare_category_indices(df, col, min_count=10):
     return df[df[col].isin(rare)].index
 
 
+
+
+# -----------------------------------------------------------                       -----------------------------------------------------------
+# ----------------------------------------------------------- 03_Model Training     -----------------------------------------------------------
+# -----------------------------------------------------------                       -----------------------------------------------------------
+
+
+def evaluate_model(y_true, y_pred, y_prob):
+    """
+    Evaluates a binary classifier and returns key metrics.
+    
+    Args:
+        y_true: true labels
+        y_pred: predicted labels
+        y_prob: predicted probabilities for positive class
+    Returns:
+        dict of metrics
+    """
+    return {
+        'accuracy': accuracy_score(y_true, y_pred),
+        'f1': f1_score(y_true, y_pred, zero_division=0),
+        'precision': precision_score(y_true, y_pred, zero_division=0),
+        'recall': recall_score(y_true, y_pred, zero_division=0),
+        'roc_auc': roc_auc_score(y_true, y_prob)
+    }
 # -----------------------------------------------------------
 # -------------------- Encoder Functions --------------------
 # -----------------------------------------------------------
